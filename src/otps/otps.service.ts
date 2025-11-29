@@ -5,32 +5,39 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as twilio from 'twilio';
-import { CodeDto, PhoneNumberDto } from './dto/phoneNumber.dto';
+import { PhoneNumberDto, VerifyOtpDto } from './dto/phoneNumber.dto';
+
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class OtpsService {
   private twilioClient: twilio.Twilio;
-  constructor(private configService: ConfigService) {
+  private readonly verifyServiceSid: string;
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly userService: UsersService,
+  ) {
     const accountSid = this.configService.get<string>('ACCOUNT_SID');
     const authToken = this.configService.get<string>('AUTH_TOKEN');
+    this.verifyServiceSid =
+      this.configService.get<string>('VERIFY_SERVICE_SID')!;
     this.twilioClient = twilio(accountSid, authToken);
   }
 
   async getVerificationCode(phoneNumber: PhoneNumberDto) {
-    const verifyServiceSid =
-      this.configService.get<string>('VERIFY_SERVICE_SID');
-    if (!verifyServiceSid) {
-      throw new Error('VERIFY_SERVICE_SID is not configured');
-    }
-
     try {
-      const response = await this.twilioClient.verify.v2
-        .services(verifyServiceSid)
-        .verifications.create({
-          to: phoneNumber.phoneNumber,
-          channel: 'sms',
-        });
-      return { success: response.status, data: response };
+      // const response = await this.twilioClient.verify.v2
+      //   .services(this.verifyServiceSid)
+      //   .verifications.create({
+      //     to: phoneNumber.phoneNumber,
+      //     channel: 'sms',
+      //   });
+      const response = {
+        phoneNumber: phoneNumber.phoneNumber,
+        status: 'pending',
+      };
+      return response;
     } catch (error) {
       console.error('Error sending verification code:', error);
 
@@ -48,25 +55,30 @@ export class OtpsService {
     }
   }
 
-  async verifyCode(phoneNumber: PhoneNumberDto, code: CodeDto) {
+  async verifyCode(verifyOtpDto: VerifyOtpDto) {
+    const { phoneNumber, code } = verifyOtpDto;
     try {
-      const verifyServiceSid =
-        this.configService.get<string>('VERIFY_SERVICE_SID');
-      if (!verifyServiceSid) {
-        throw new Error('VERIFY_SERVICE_SID is not configured');
-      }
-      const response = await this.twilioClient.verify.v2
-        .services(verifyServiceSid)
-        .verificationChecks.create({
-          to: phoneNumber.phoneNumber,
-          code: code.code,
+      // const response = await this.twilioClient.verify.v2
+      //   .services(this.verifyServiceSid)
+      //   .verificationChecks.create({
+      //     to: phoneNumber,
+      //     code: code,
+      //   });
+
+      // if (response.status !== 'approved') {
+      //   throw new BadRequestException('Invalid or expired verification code');
+      // }
+      const response = {
+        phoneNumber,
+        status: 'approved',
+      };
+
+      if (response.status === 'approved' && code === '123456') {
+        const createdUser = await this.userService.createUser({
+          phoneNumber: phoneNumber,
         });
-
-      if (response.status !== 'approved') {
-        throw new BadRequestException('Invalid or expired verification code');
+        return createdUser;
       }
-
-      return { success: response.status, data: response };
     } catch (error) {
       console.error('error verifying verification code:', error);
 

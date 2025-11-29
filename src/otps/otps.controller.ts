@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { OtpsService } from './otps.service';
-import { CodeDto, PhoneNumberDto } from './dto/phoneNumber.dto';
+import { PhoneNumberDto, VerifyOtpDto } from './dto/phoneNumber.dto';
 
 @Controller('otps')
 export class OtpsController {
@@ -12,7 +12,8 @@ export class OtpsController {
   }
 
   @Post('verify_otp')
-  async verifyOtp(@Body() code: CodeDto, @Body() phoneNumber: PhoneNumberDto) {
-    return this.otpsService.verifyCode(phoneNumber, code);
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    const { phoneNumber, code } = verifyOtpDto;
+    return this.otpsService.verifyCode({ phoneNumber, code });
   }
 }
