@@ -27,3 +27,7 @@ export class UpdateUserDto {
   @IsOptional()
   avatarIndex?: number | null;
 }
+
+export class FindUsersByPhoneDto {
+  phoneNumbers: any;
+}

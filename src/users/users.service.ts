@@ -32,7 +32,22 @@ export class UsersService {
 
       //handle internal server errors
       throw new InternalServerErrorException(
-        'Something went wrong. Please try again.',
+        'Something went wrong. Please try again.', error
+      );
+    }
+  }
+
+  async isProfilePhotoUnchanged(user: UpdateUserDto) {
+    try {
+      const existingUser = await this.userModel.findOne({
+        phoneNumber:user.phoneNumber
+      })
+      return existingUser?.profilePhoto === user.profilePhoto
+      
+    } catch (error) {
+      console.error('could not create new user', error);
+      throw new InternalServerErrorException(
+        'Something went wrong. Please try again.', error
       );
     }
   }
@@ -74,6 +89,20 @@ export class UsersService {
       return users;
     } catch (error) {
       console.log('could not find users', error);
+      throw new InternalServerErrorException(
+        'Something went wrong. Please try again.',
+      );
+    }
+  }
+
+  async getUsersByIds(userIds: string[]) {
+    try {
+      const users = await this.userModel.find({
+        phoneNumber: { $in: userIds },
+      });
+      return users;
+    } catch (error) {
+      console.log('could not find users by ids', error);
       throw new InternalServerErrorException(
         'Something went wrong. Please try again.',
       );

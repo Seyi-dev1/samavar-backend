@@ -8,15 +8,17 @@ import {
 } from '@nestjs/common';
 import { User } from './user.schema';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto/create-user-dto';
+import { CreateUserDto, FindUsersByPhoneDto, UpdateUserDto } from './dto/create-user-dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ImageUploadService } from 'src/image-upload/image-upload.service';
+import { ChatService } from 'src/chat/chat.service';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly userService: UsersService,
     private readonly imageUploadService: ImageUploadService,
+    private readonly chatService: ChatService,
   ) {}
 
   @Post('create')
@@ -25,23 +27,30 @@ export class UsersController {
   }
 
   @Post('update')
-  @UseInterceptors(FileInterceptor('profilePhoto'))
+  @UseInterceptors(FileInterceptor('profilePhotoFile'))
   async updateUser(
     @Body() user: UpdateUserDto,
-    @UploadedFile() profilePhoto?: Express.Multer.File,
+    @UploadedFile() profilePhotoFile?: Express.Multer.File,
   ): Promise<User> {
-    console.log('photo', profilePhoto);
+    console.log('photo', profilePhotoFile);
     console.log('body', user);
-    if (profilePhoto) {
+    if (profilePhotoFile) {
+      const isProfilePhotoUnchanged = await this.userService.isProfilePhotoUnchanged(user)
+      if(isProfilePhotoUnchanged) {
+        return this.userService.updateUser({
+          ...user,
+          avatarIndex:null,
+        })
+      }
       const uploadedImage =
-        await this.imageUploadService.uploadImage(profilePhoto);
+        await this.imageUploadService.uploadImage(profilePhotoFile);
       return this.userService.updateUser({
         ...user,
         avatarIndex: null,
         profilePhoto: uploadedImage.secure_url,
       });
     }
-    if (!profilePhoto) {
+    if (!profilePhotoFile) {
       console.log('photo not found');
     }
 
@@ -57,6 +66,21 @@ export class UsersController {
   @Get()
   async getAllUsers() {
     const users = await this.userService.getAllUsers();
+    return users;
+  }
+
+  @Get('online')
+  async getOnlineUsers() {
+    const users =  this.chatService.getOnlineUsers();
+    return users;
+  }
+
+  @Post('by_ids')
+  async getUsersByIds(@Body() dto: any ) {
+    console.log('running')
+    console.log('userIds', dto.phoneNumbers);
+    const users = await this.userService.getUsersByIds(dto.phoneNumbers);
+    console.log('users', users);
     return users;
   }
 }

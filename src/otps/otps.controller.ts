@@ -8,6 +8,7 @@ export class OtpsController {
 
   @Post('request_otp')
   async requestOtp(@Body() phoneNumber: PhoneNumberDto) {
+    console.log('Received phone number:', phoneNumber);
     return this.otpsService.getVerificationCode(phoneNumber);
   }
 
